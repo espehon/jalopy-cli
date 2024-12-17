@@ -25,15 +25,14 @@ if os.path.exists(os.path.expanduser(storage_folder)) == False:
 
 # Check if storage file exists, create it if missing.
 if os.path.exists(storage_path) == False:
-    headers = ['Date', 'Vehicle', 'Odometer', 'Units', 'Work', 'Cost', 'Note']
-    df = pd.DataFrame(columns=headers)
+    df = pd.DataFrame(columns=['Date', 'Vehicle', 'Odometer', 'Units', 'Service', 'Cost', 'Note'])
     df.to_csv(storage_path, index=False)
 
 
 
 # Set argument parsing
 parser = argparse.ArgumentParser(
-    description="Tasky: A to-do list program!\n\nBased off of klaudiosinani's Taskbook for JavaScript.",
+    description="Jalopy: Log vehicle maintenance via the commandline!",
     epilog="Examples: ts --task this is a new task, ts --switch 1, ts --complete 1",
     allow_abbrev=False,
     add_help=False,
