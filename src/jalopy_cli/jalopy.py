@@ -17,7 +17,7 @@ import pandas as pd
 import questionary
 
 # Set file paths
-storage_folder = os.path.expanduser("~/.share/jalopy/")
+storage_folder = os.path.expanduser("~/.local/share/jalopy/")
 storage_file = "jalopy.csv"
 storage_path = storage_folder + storage_file
 
@@ -35,15 +35,15 @@ data = pd.read_csv(storage_path)
 # Predefined list of common services with their frequencies
 common_services = {
     'Oil': 10,
-    'Coolant': 9,
-    'Brakes': 8,
-    'Engine Air Filter': 7,
-    'Cabin Air Filter': 6,
-    'Headlights': 5,
-    'Tire Rotation': 4, 
-    'Battery Check': 3,
-    'Transmission Fluid': 2,
-    'Spark Plugs': 1
+    'Engine Air Filter': 9,
+    'Cabin Air Filter': 8,
+    'Brakes': 7,
+    'Battery Check': 6,
+    'Registration': 5,
+    'Tire Rotation': 4,
+    'New Tires': 3,
+    'Spark Plugs': 2,
+    'Transmission Fluid': 1
 }
 
 
@@ -71,7 +71,7 @@ parser.add_argument('-h', '--history', nargs='?', metavar='N', const=10, action=
 
 config = ConfigParser()
 
-
+# Function to generate a series of prompts for a new entry
 def new_entry():
     key = get_next_key(data)
     date = get_date()
@@ -84,14 +84,14 @@ def new_entry():
     return key, date, vehicle, units, odometer, service, cost, note
 
 
+# Function to get the next key for the dataframe; will be max + 1
 def get_next_key(df) -> int:
-    # get the next key for the dataframe; will be max + 1
     if df.empty:
         return 1
     else:
         return df['Key'].max() + 1
 
-
+# Function to select a date
 def get_date() -> str:
     # Generate a list of dates from today to the last 7 days
     today = datetime.today()
@@ -119,7 +119,7 @@ def get_date() -> str:
 
     return selected_date
 
-
+# Function to get the vehicle
 def get_vehicle(df):
     # Get the list of vehicles from the DataFrame 
     vehicles = df['Vehicle'].unique().tolist()
@@ -135,8 +135,8 @@ def get_vehicle(df):
     return selected_vehicle
 
 
+# Function to get the units
 def get_units(df, vehicle):
-    # Function to get the units
     # Filter the DataFrame for the given vehicle
     vehicle_df = df[df['Vehicle'] == vehicle]
     # Check if there are any units for the given vehicle
@@ -147,15 +147,15 @@ def get_units(df, vehicle):
         units = questionary.select( "Select units:", choices=['Miles', 'Km'] ).ask()
     return units
 
-
+# Function to get the odometer value
 def get_odometer(units):
     # Prompt the user for the odometer value with units in the prompt
     odometer_value = questionary.text(f"Enter the odometer value ({units}):").ask()
     return odometer_value
 
 
+# Function to get the service
 def get_service(df, vehicle):
-    # Function to get the service
     # Filter the DataFrame for the given vehicle
     vehicle_df = df[df['Vehicle'] == vehicle]
 
@@ -163,7 +163,7 @@ def get_service(df, vehicle):
     vehicle_services = vehicle_df['Service'].tolist()
 
     # Combine the common services with the vehicle services
-    combined_services = common_services + Counter(vehicle_services)
+    combined_services = Counter(common_services) + Counter(vehicle_services)
 
     # Create a sorted list of services based on frequency 
     sorted_services = [service for service, _ in combined_services.most_common()]
@@ -181,8 +181,8 @@ def get_service(df, vehicle):
     return selected_service
 
 
+# Function to get the cost
 def get_cost():
-    # Function to get the cost
     tries = 3
     while tries > 0:
         cost_input = questionary.text("Enter the cost:").ask().strip()
@@ -198,8 +198,8 @@ def get_cost():
                 return None
 
 
+# Function to get the note
 def get_note():
-    # Function to get the note
     note = questionary.text("Enter a note:").ask().strip()
     return note
 
@@ -215,15 +215,23 @@ def add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note
         'Cost': cost,
         'Note': note
     }
-    data = data.append(new_row, ignore_index=True)
+    data.loc[len(data)] = new_row
     return data
 
 
-def jalopy(argv=None):
+# Function to print the last N rows of the DataFrame
+def print_history(data, n=10):
+    # Get the last N rows
+    history = data.tail(n)
+    # Print the history neatly
+    print(history.to_string(index=False))
+
+
+def jalopy(data=data, argv=None):
     args = parser.parse_args(argv)
 
     if args.history:
-        print("print history not yet added.")
+        print_history(data, args.history)
     
     else:
         # Get new entry values
