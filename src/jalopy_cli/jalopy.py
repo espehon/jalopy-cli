@@ -9,6 +9,7 @@ import json
 import importlib.metadata
 from configparser import ConfigParser
 from datetime import datetime, timedelta
+from collections import Counter
 
 
 import pandas as pd
@@ -26,10 +27,24 @@ if os.path.exists(os.path.expanduser(storage_folder)) == False:
 
 # Check if storage file exists, create it if missing.
 if os.path.exists(storage_path) == False:
-    df = pd.DataFrame(columns=['Key', 'Date', 'Vehicle', 'Odometer', 'Units', 'Service', 'Cost', 'Note'])
-    df.to_csv(storage_path, index=False)
+    starter_df = pd.DataFrame(columns=['Key', 'Date', 'Vehicle', 'Odometer', 'Units', 'Service', 'Cost', 'Note'])
+    starter_df.to_csv(storage_path, index=False)
 
 data = pd.read_csv(storage_path)
+
+# Predefined list of common services with their frequencies
+common_services = {
+    'Oil': 10,
+    'Coolant': 9,
+    'Brakes': 8,
+    'Engine Air Filter': 7,
+    'Cabin Air Filter': 6,
+    'Headlights': 5,
+    'Tire Rotation': 4, 
+    'Battery Check': 3,
+    'Transmission Fluid': 2,
+    'Spark Plugs': 1
+}
 
 
 
@@ -63,13 +78,10 @@ def new_entry():
     vehicle = get_vehicle(data)
     units = get_units(data, vehicle)
     odometer = get_odometer(units)
-    # ask for service
-    # ask for cost
-    # ask for optional note
-    # check for custom headers and ask for values
-
-    # add the entry to the dataframe
-    pass
+    service = get_service(data, vehicle)
+    cost = get_cost()
+    note = get_note()
+    return key, date, vehicle, units, odometer, service, cost, note
 
 
 def get_next_key(df) -> int:
@@ -142,6 +154,69 @@ def get_odometer(units):
     return odometer_value
 
 
+def get_service(df, vehicle):
+    # Function to get the service
+    # Filter the DataFrame for the given vehicle
+    vehicle_df = df[df['Vehicle'] == vehicle]
+
+    # Get the list of services for the given vehicle
+    vehicle_services = vehicle_df['Service'].tolist()
+
+    # Combine the common services with the vehicle services
+    combined_services = common_services + Counter(vehicle_services)
+
+    # Create a sorted list of services based on frequency 
+    sorted_services = [service for service, _ in combined_services.most_common()]
+
+    # Add the 'New' option at the end
+    sorted_services.append('New')
+
+    # Prompt the user to select a service
+    selected_service = questionary.select( "Select a service:", choices=sorted_services ).ask()
+
+    # If 'New' is selected, prompt the user to enter a new service
+    if selected_service == 'New':
+        selected_service = questionary.text("Enter a new service:").ask()
+
+    return selected_service
+
+
+def get_cost():
+    # Function to get the cost
+    tries = 3
+    while tries > 0:
+        cost_input = questionary.text("Enter the cost:").ask().strip()
+        try:
+            # Validate the cost input 
+            cost = float(cost_input)
+            return cost
+        except ValueError:
+            print("Invalid input. Please enter a valid float number.")
+            tries -= 1
+            if tries == 0:
+                print("Too many invalid attempts. Exiting.")
+                return None
+
+
+def get_note():
+    # Function to get the note
+    note = questionary.text("Enter a note:").ask().strip()
+    return note
+
+# Function to add a new entry to the DataFrame
+def add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note):
+    new_row = {
+        'Key': key,
+        'Date': date,
+        'Vehicle': vehicle,
+        'Odometer': odometer,
+        'Units': units,
+        'Service': service,
+        'Cost': cost,
+        'Note': note
+    }
+    data = data.append(new_row, ignore_index=True)
+    return data
 
 
 def jalopy(argv=None):
@@ -151,7 +226,12 @@ def jalopy(argv=None):
         print("print history not yet added.")
     
     else:
-        print("add entry not yet ready")
+        # Get new entry values
+        key, date, vehicle, units, odometer, service, cost, note = new_entry()
+        # Add the new entry to the DataFrame
+        data = add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note)
+        # Write changes to storage
+        data.to_csv(storage_path, index=False)
     
     print(args)
 
