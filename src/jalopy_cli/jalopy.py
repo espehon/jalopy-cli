@@ -15,6 +15,12 @@ from collections import Counter
 import pandas as pd
 import questionary
 
+# Get version of this package
+try:
+    __version__ = f"jalopy {importlib.metadata.version('jalopy_cli')} from jalopy_cli"
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "Package not installed..."
+
 # Set file paths
 config_path = os.path.expanduser('~/.config/jalopy/jalopy.json')
 if os.path.exists(config_path):
@@ -65,6 +71,7 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument('-?', '--help', action='help', help='Show this help message and exit.')
+parser.add_argument('-v', '--version', action='version', version=__version__, help="Show package version and exit.")
 parser.add_argument('-h', '--history', nargs='?', metavar='N', const=10, action='store', type=int, help='Show the last [N] entries. Default 10')
 
 config = ConfigParser()
