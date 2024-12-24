@@ -13,11 +13,20 @@ from collections import Counter
 
 
 import pandas as pd
-# import copykitten
 import questionary
 
 # Set file paths
-storage_folder = os.path.expanduser("~/.local/share/jalopy/")
+config_path = os.path.expanduser('~/.config/jalopy/jalopy.json')
+if os.path.exists(config_path):
+    with open(config_path, 'r') as file:
+        settings = json.load(file)
+else:
+    settings = {'storage_path': '~/.local/share/jalopy/'}
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, 'w') as file:
+        json.dump(settings, file, indent=4)
+
+storage_folder = os.path.expanduser(settings['storage_path'])
 storage_file = "jalopy.csv"
 storage_path = storage_folder + storage_file
 
@@ -46,28 +55,17 @@ common_services = {
     'Transmission Fluid': 1
 }
 
-
-
 # Set argument parsing
 parser = argparse.ArgumentParser(
-    description="Jalopy! Log vehicle maintenance via the commandline! Enter 'jalopy' with no arguments to start entry.",
+    description="Jalopy! Log vehicle maintenance via the commandline!",
     epilog="Jalopy (Noun): An old vehicle. Can be used as an insult or a term of endearment :)",
     allow_abbrev=False,
     add_help=False,
-    usage="jalopy [option] <arguments>    'try: jalopy --help'"
+    usage="jalopy [option] <arguments>    # Enter 'jalopy' with no arguments to start entry."
 )
 
 parser.add_argument('-?', '--help', action='help', help='Show this help message and exit.')
 parser.add_argument('-h', '--history', nargs='?', metavar='N', const=10, action='store', type=int, help='Show the last [N] entries. Default 10')
-
-# parser.add_argument('-t', '--task', action='store_true', help='Add a new task')
-# parser.add_argument('-c', '--complete', nargs='+', metavar='T', action='store', type=int, help='Mark task(s) complete')
-# parser.add_argument('-s', '--switch', nargs='+', metavar='T', action='store', type=int, help='Toggle task(s) as started/stopped')
-# parser.add_argument('-f', '--flag', nargs='+', metavar='T', action='store', type=int, help='Flag task(s) with astrict (*)')
-# parser.add_argument('-p', '--priority', nargs=2, metavar=('T', 'P'), action='store', type=int, help='Set the priority of task [T] to [P]')
-# parser.add_argument('-e', '--edit', nargs=1, metavar='T', action='store', type=int, help='Enter edit mode on a task')
-# parser.add_argument('--clean', action='store_true', help='Remove complete/deleted tasks and reset indices')
-# parser.add_argument('text', nargs=argparse.REMAINDER, help='Task description that is used with --task')
 
 config = ConfigParser()
 
@@ -168,7 +166,8 @@ def get_service(df, vehicle):
     # Create a sorted list of services based on frequency 
     sorted_services = [service for service, _ in combined_services.most_common()]
 
-    # Add the 'New' option at the end
+    # Add the 'None' and 'New' options at the end
+    sorted_services.append('None')
     sorted_services.append('New')
 
     # Prompt the user to select a service
@@ -226,7 +225,7 @@ def print_history(data, n=10):
     # Print the history neatly
     print(history.to_string(index=False))
 
-
+# Main function
 def jalopy(data=data, argv=None):
     args = parser.parse_args(argv)
 
@@ -241,5 +240,3 @@ def jalopy(data=data, argv=None):
         # Write changes to storage
         data.to_csv(storage_path, index=False)
     
-    print(args)
-
