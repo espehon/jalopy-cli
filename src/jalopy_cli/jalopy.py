@@ -276,10 +276,16 @@ def print_history(data, passed_args):
             v.append(arg)
     if n == None:
         n = 10
+        
     if v:
         data = data[data['Vehicle'].isin(v)]
+
+    # Sort the DataFrame by Odometer and Date in ascending order 
+    data = data.sort_values(by=['Odometer', 'Date'])
+
     # Get the last N rows
     history = data.tail(n)
+
     # Print the history neatly
     print(history.to_string(index=False))
 
