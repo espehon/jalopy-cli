@@ -107,13 +107,13 @@ def get_date() -> str:
     date_options.append('Custom')
     
     # Prompt the user to select a date
-    selected_date = questionary.select( "Select a date:", choices=date_options ).ask()
+    selected_date = questionary.select( "Select a date:", choices=date_options ).unsafe_ask()
 
     # If 'Custom' is selected, prompt the user to enter a date manually 
     if selected_date == 'Custom':
         tries = 3
         while tries > 0:
-            selected_date = questionary.text("Enter a date (YYYY-MM-DD):").ask()
+            selected_date = questionary.text("Enter a date (YYYY-MM-DD):").unsafe_ask()
             try:
                 # Validate the custom date format
                 datetime.strptime(selected_date, '%Y-%m-%d')
@@ -124,6 +124,8 @@ def get_date() -> str:
                 if tries == 0:
                     print("Too many invalid attempts. Using today's date.")
                     selected_date = date_options[0]
+    else:
+        return selected_date
 
 
 # Function to get the vehicle
@@ -133,21 +135,22 @@ def get_vehicle(df):
     vehicles.append('New') 
 
     # Prompt the user to select a vehicle
-    selected_vehicle = questionary.select( "Select a vehicle:", choices=vehicles ).ask()
+    selected_vehicle = questionary.select( "Select a vehicle:", choices=vehicles ).unsafe_ask()
 
     # If 'New' is selected, prompt the user to enter a new vehicle
     if selected_vehicle == 'New':
         tries = 3
         while tries > 0:
-            selected_vehicle = questionary.text("Enter a new vehicle:").ask().strip()
-            if len(selected_vehicle) < 1:
+            selected_vehicle = questionary.text("Enter a new vehicle:").unsafe_ask().strip()
+            if len(selected_vehicle) > 0:
+                return selected_vehicle
+            else:
                 print("Invalid input. Please enter at least one character.")
                 tries -= 1
                 if tries == 0:
                     print("Too many invalid attempts. Exiting...")
                     sys.exit(1)
-            else:
-                return selected_vehicle
+    return selected_vehicle
 
 
 # Function to get the units
@@ -159,7 +162,7 @@ def get_units(df, vehicle):
         units = vehicle_df['Units'].iloc[0]
     else:
         # Prompt the user to select Miles or Km 
-        units = questionary.select( "Select units:", choices=['Miles', 'Km'] ).ask()
+        units = questionary.select( "Select units:", choices=['Miles', 'Km'] ).unsafe_ask()
     return units
 
 
@@ -168,10 +171,12 @@ def get_odometer(units):
     # Prompt the user for the odometer value with units in the prompt
     tries = 3
     while tries > 0:
-        odometer_value_input = questionary.text(f"Enter the odometer value ({units}):").ask()
+        odometer_value_input = questionary.text(f"Enter the odometer value ({units}):").unsafe_ask()
         try:
             # Validate the cost input 
             odometer_value = int(odometer_value_input)
+            if odometer_value < 0:
+                raise ValueError
             return odometer_value
         except ValueError:
             print("Invalid input. Please enter a valid whole number.")
@@ -179,7 +184,6 @@ def get_odometer(units):
             if tries == 0:
                 print("Too many invalid attempts. Exiting...")
                 sys.exit(1)
-
 
 # Function to get the service
 def get_service(df, vehicle):
@@ -200,11 +204,11 @@ def get_service(df, vehicle):
     sorted_services.append('New')
 
     # Prompt the user to select a service
-    selected_service = questionary.select( "Select a service:", choices=sorted_services ).ask()
+    selected_service = questionary.select( "Select a service:", choices=sorted_services ).unsafe_ask()
 
     # If 'New' is selected, prompt the user to enter a new service
     if selected_service == 'New':
-        selected_service = questionary.text("Enter a new service:").ask().strip()
+        selected_service = questionary.text("Enter a new service:").unsafe_ask().strip()
 
     return selected_service
 
@@ -213,11 +217,9 @@ def get_service(df, vehicle):
 def get_cost():
     tries = 3
     while tries > 0:
-        cost_input = questionary.text("Enter the cost:").ask().strip()
+        cost_input = questionary.text("Enter the cost:").unsafe_ask().strip()
         try:
             # Validate the cost input 
-            if cost_input == '':
-                return None
             cost = float(cost_input)
             return cost
         except ValueError:
@@ -230,7 +232,7 @@ def get_cost():
 
 # Function to get the note
 def get_note():
-    note = questionary.text("Enter a note:").ask().strip()
+    note = questionary.text("Enter a note:").unsafe_ask().strip()
     return note
 
 
@@ -273,7 +275,7 @@ def jalopy(data=data, argv=None):
             data = add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note)
             # Write changes to storage
             data.to_csv(storage_path, index=False)
-            print(f"√ Entry added to {storage_path}")
+            questionary.print(f"✔  Entry added to {storage_path}", style="italic darkgreen")
         except KeyboardInterrupt:
             print("KeyboardInterrupt detected, aborting...")
     
