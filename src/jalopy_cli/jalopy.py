@@ -73,9 +73,18 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-?', '--help', action='help', help='Show this help message and exit.')
 parser.add_argument('-v', '--version', action='version', version=__version__, help="Show package version and exit.")
-parser.add_argument('-h', '--history', nargs='?', metavar='N', const=10, action='store', type=int, help='Show the last [N] entries. Default 10')
+parser.add_argument('-h', '--history', nargs='*', metavar='N', help='Show the last [N] entries for vehicle(s) [N]. N can be a number or a vehicle name. Vehicle names are case sensitive and multiple can be passed. Default is 10 entries for all vehicles.')
 
 config = ConfigParser()
+
+
+# Function to check if value is a number
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 
 # Function to generate a series of prompts for a new entry
@@ -252,8 +261,20 @@ def add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note
     return data
 
 
-# Function to print the last N rows of the DataFrame
-def print_history(data, n=10):
+# Function to print the last N rows of the DataFrame and filter by vehicle
+def print_history(data, passed_args):
+    n = None
+    v = []
+
+    for arg in passed_args:
+        if n == None and is_number(arg):
+            n = int(arg)
+        else:
+            v.append(arg)
+    if n == None:
+        n = 10
+    if v:
+        data = data[data['Vehicle'].isin(v)]
     # Get the last N rows
     history = data.tail(n)
     # Print the history neatly
@@ -263,8 +284,9 @@ def print_history(data, n=10):
 # Main function
 def jalopy(data=data, argv=None):
     args = parser.parse_args(argv)
+    print(args)
 
-    if args.history:
+    if args.history != None:
         print_history(data, args.history)
     
     else:
