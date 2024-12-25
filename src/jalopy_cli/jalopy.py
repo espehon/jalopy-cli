@@ -78,11 +78,13 @@ parser.add_argument('-h', '--history', nargs='*', metavar='N', help='Show the la
 config = ConfigParser()
 
 
-# Function to check if value is a number
-def is_number(s):
+# Function to check if value is a valid number
+def is_valid_number(number, minimum=sys.float_info.min, maximum=sys.float_info.max):
     try:
-        float(s)
-        return True
+        if float(number) >= minimum and float(number) <= maximum:
+            return True
+        else:
+            raise ValueError
     except ValueError:
         return False
 
@@ -184,9 +186,9 @@ def get_odometer(units):
         try:
             # Validate the cost input 
             odometer_value = int(odometer_value_input)
-            if odometer_value < 0:
-                raise ValueError
-            return odometer_value
+            if is_valid_number(odometer_value, 0):
+                return odometer_value
+            raise ValueError
         except ValueError:
             print("Invalid input. Please enter a valid whole number.")
             tries -= 1
@@ -229,8 +231,9 @@ def get_cost():
         cost_input = questionary.text("Enter the cost:").unsafe_ask().strip()
         try:
             # Validate the cost input 
-            cost = float(cost_input)
-            return cost
+            if is_valid_number(cost_input, 0):
+                return cost_input
+            raise ValueError
         except ValueError:
             print("Invalid input. Please enter a valid float number.")
             tries -= 1
@@ -267,7 +270,7 @@ def print_history(data, passed_args):
     v = []
 
     for arg in passed_args:
-        if n == None and is_number(arg):
+        if n == None and is_valid_number(arg, 1):
             n = int(arg)
         else:
             v.append(arg)
