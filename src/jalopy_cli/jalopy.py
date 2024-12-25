@@ -1,7 +1,6 @@
 # Copyright (c) 2024, espehon
 # License: https://www.gnu.org/licenses/gpl-3.0.html
 
-
 import os
 import sys
 import argparse
@@ -23,6 +22,7 @@ except importlib.metadata.PackageNotFoundError:
 
 # Set file paths
 config_path = os.path.expanduser('~/.config/jalopy/jalopy.json')
+config_path = config_path.replace('\\', '/')
 if os.path.exists(config_path):
     with open(config_path, 'r') as file:
         settings = json.load(file)
@@ -33,6 +33,7 @@ else:
         json.dump(settings, file, indent=4)
 
 storage_folder = os.path.expanduser(settings['storage_path'])
+storage_folder = storage_folder.replace('\\', '/')
 storage_file = "jalopy.csv"
 storage_path = storage_folder + storage_file
 
@@ -76,6 +77,7 @@ parser.add_argument('-h', '--history', nargs='?', metavar='N', const=10, action=
 
 config = ConfigParser()
 
+
 # Function to generate a series of prompts for a new entry
 def new_entry():
     key = get_next_key(data)
@@ -96,6 +98,7 @@ def get_next_key(df) -> int:
     else:
         return df['Key'].max() + 1
 
+
 # Function to select a date
 def get_date() -> str:
     # Generate a list of dates from today to the last 7 days
@@ -114,7 +117,7 @@ def get_date() -> str:
             try:
                 # Validate the custom date format
                 datetime.strptime(selected_date, '%Y-%m-%d')
-                break
+                return selected_date
             except ValueError:
                 print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
                 tries -= 1
@@ -122,7 +125,6 @@ def get_date() -> str:
                     print("Too many invalid attempts. Using today's date.")
                     selected_date = date_options[0]
 
-    return selected_date
 
 # Function to get the vehicle
 def get_vehicle(df):
@@ -135,9 +137,17 @@ def get_vehicle(df):
 
     # If 'New' is selected, prompt the user to enter a new vehicle
     if selected_vehicle == 'New':
-        selected_vehicle = questionary.text("Enter a new vehicle:").ask()
-
-    return selected_vehicle
+        tries = 3
+        while tries > 0:
+            selected_vehicle = questionary.text("Enter a new vehicle:").ask().strip()
+            if len(selected_vehicle) < 1:
+                print("Invalid input. Please enter at least one character.")
+                tries -= 1
+                if tries == 0:
+                    print("Too many invalid attempts. Exiting...")
+                    sys.exit(1)
+            else:
+                return selected_vehicle
 
 
 # Function to get the units
@@ -152,17 +162,29 @@ def get_units(df, vehicle):
         units = questionary.select( "Select units:", choices=['Miles', 'Km'] ).ask()
     return units
 
+
 # Function to get the odometer value
 def get_odometer(units):
     # Prompt the user for the odometer value with units in the prompt
-    odometer_value = questionary.text(f"Enter the odometer value ({units}):").ask()
-    return odometer_value
+    tries = 3
+    while tries > 0:
+        odometer_value_input = questionary.text(f"Enter the odometer value ({units}):").ask()
+        try:
+            # Validate the cost input 
+            odometer_value = int(odometer_value_input)
+            return odometer_value
+        except ValueError:
+            print("Invalid input. Please enter a valid whole number.")
+            tries -= 1
+            if tries == 0:
+                print("Too many invalid attempts. Exiting...")
+                sys.exit(1)
 
 
 # Function to get the service
 def get_service(df, vehicle):
     # Filter the DataFrame for the given vehicle
-    vehicle_df = df[df['Vehicle'] == vehicle]
+    vehicle_df = df[df['Vehicle'] == vehicle].dropna(subset=['Service'])
 
     # Get the list of services for the given vehicle
     vehicle_services = vehicle_df['Service'].tolist()
@@ -182,7 +204,7 @@ def get_service(df, vehicle):
 
     # If 'New' is selected, prompt the user to enter a new service
     if selected_service == 'New':
-        selected_service = questionary.text("Enter a new service:").ask()
+        selected_service = questionary.text("Enter a new service:").ask().strip()
 
     return selected_service
 
@@ -194,20 +216,23 @@ def get_cost():
         cost_input = questionary.text("Enter the cost:").ask().strip()
         try:
             # Validate the cost input 
+            if cost_input == '':
+                return None
             cost = float(cost_input)
             return cost
         except ValueError:
             print("Invalid input. Please enter a valid float number.")
             tries -= 1
             if tries == 0:
-                print("Too many invalid attempts. Exiting.")
-                return None
+                print("Too many invalid attempts. Exiting...")
+                sys.exit(1)
 
 
 # Function to get the note
 def get_note():
     note = questionary.text("Enter a note:").ask().strip()
     return note
+
 
 # Function to add a new entry to the DataFrame
 def add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note):
@@ -232,6 +257,7 @@ def print_history(data, n=10):
     # Print the history neatly
     print(history.to_string(index=False))
 
+
 # Main function
 def jalopy(data=data, argv=None):
     args = parser.parse_args(argv)
@@ -240,10 +266,15 @@ def jalopy(data=data, argv=None):
         print_history(data, args.history)
     
     else:
-        # Get new entry values
-        key, date, vehicle, units, odometer, service, cost, note = new_entry()
-        # Add the new entry to the DataFrame
-        data = add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note)
-        # Write changes to storage
-        data.to_csv(storage_path, index=False)
+        try:
+            # Get new entry values
+            key, date, vehicle, units, odometer, service, cost, note = new_entry()
+            # Add the new entry to the DataFrame
+            data = add_new_entry(data, key, date, vehicle, units, odometer, service, cost, note)
+            # Write changes to storage
+            data.to_csv(storage_path, index=False)
+            print(f"√ Entry added to {storage_path}")
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt detected, aborting...")
+    
     

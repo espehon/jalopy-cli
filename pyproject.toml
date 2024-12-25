@@ -25,7 +25,7 @@ classifiers = [                                       # Kinda boilerplate. Used 
 ]
 
 [project.scripts]                                     # The entrypoint for CLI app (if needed)
-chksum = "jalopy_cli.jalopy:jalopy"               # SYNTAX: <commandlet> = "folder.file:function"
+jalopy = "jalopy_cli.jalopy:jalopy"               # SYNTAX: <commandlet> = "folder.file:function"
                                                       # def main in __main__ and place in if name check
 [project.urls]
 "Homepage" = "https://github.com/espehon/jalopy-cli"              # Boilerplate links to GitHub repo
