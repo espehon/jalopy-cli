@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"               # Boilerplate
 
 [project]
 name = "jalopy-cli"                              # Your pip install <name> (must be unique)
-version = "1.0"                                     # Must be manually updated here with every change
+version = "1.1"                                     # Must be manually updated here with every change
 authors = [
 	{ name="espehon", email="espehon@gmail.com" },      # Email is optional (as array?)
 ]
