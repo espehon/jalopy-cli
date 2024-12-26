@@ -293,7 +293,6 @@ def print_history(data, passed_args):
 # Main function
 def jalopy(data=data, argv=None):
     args = parser.parse_args(argv)
-    print(args)
 
     if args.history != None:
         print_history(data, args.history)
